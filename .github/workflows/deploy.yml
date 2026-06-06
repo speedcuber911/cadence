@@ -1,0 +1,95 @@
+name: Deploy to Amplify
+
+# Auto-build and deploy to AWS Amplify (app: cadence → cadence.cutcompanion.xyz)
+# on every push to main. Builds on the runner and pushes dist/ via the Amplify
+# manual-deployment API (no Amplify↔GitHub OAuth needed).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+concurrency:
+  group: amplify-deploy-main
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-1
+  AMPLIFY_APP_ID: d30mtki2irwtny
+  AMPLIFY_BRANCH: main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Package dist/
+        run: |
+          cd dist
+          zip -qr ../dist.zip .
+          cd ..
+
+      - name: Deploy to Amplify
+        run: |
+          set -euo pipefail
+
+          # 1. Create a deployment slot → get jobId + presigned upload URL
+          DEP=$(aws amplify create-deployment \
+            --app-id "$AMPLIFY_APP_ID" \
+            --branch-name "$AMPLIFY_BRANCH" \
+            --region "$AWS_REGION" \
+            --output json)
+          JOB_ID=$(echo "$DEP" | jq -r '.jobId')
+          UPLOAD_URL=$(echo "$DEP" | jq -r '.zipUploadUrl')
+          echo "Deployment job: $JOB_ID"
+
+          # 2. Upload the build artifact
+          curl -fsS -H "Content-Type: application/zip" \
+            --upload-file dist.zip "$UPLOAD_URL"
+
+          # 3. Start the deployment
+          aws amplify start-deployment \
+            --app-id "$AMPLIFY_APP_ID" \
+            --branch-name "$AMPLIFY_BRANCH" \
+            --job-id "$JOB_ID" \
+            --region "$AWS_REGION" >/dev/null
+
+          # 4. Poll until the job finishes
+          for i in $(seq 1 40); do
+            STATUS=$(aws amplify get-job \
+              --app-id "$AMPLIFY_APP_ID" \
+              --branch-name "$AMPLIFY_BRANCH" \
+              --job-id "$JOB_ID" \
+              --region "$AWS_REGION" \
+              --query 'job.summary.status' --output text)
+            echo "poll $i: $STATUS"
+            case "$STATUS" in
+              SUCCEED) echo "Deployed."; exit 0 ;;
+              FAILED|CANCELLED) echo "Deployment $STATUS"; exit 1 ;;
+            esac
+            sleep 6
+          done
+          echo "Timed out waiting for deployment"; exit 1
