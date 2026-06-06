@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===========================================================================
+   BOLD ATHLETIC THEME — condensed display type, near-black, electric orange.
+   Functional layer unchanged; this is the visual identity.
+   =========================================================================== */
+
+@layer base {
+  :root {
+    /* near-black base, high contrast */
+    --background: 20 14% 4%;
+    --foreground: 40 12% 96%;
+    --card: 24 10% 8%;
+    --card-foreground: 40 12% 96%;
+    --popover: 24 10% 9%;
+    --popover-foreground: 40 12% 96%;
+
+    /* electric orange/amber accent */
+    --primary: 22 95% 54%;
+    --primary-foreground: 24 60% 6%;
+
+    --secondary: 24 8% 14%;
+    --secondary-foreground: 40 12% 96%;
+    --muted: 24 8% 14%;
+    --muted-foreground: 36 6% 60%;
+    --accent: 22 95% 54%;
+    --accent-foreground: 24 60% 6%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 28 8% 16%;
+    --input: 28 8% 20%;
+    --ring: 22 95% 54%;
+
+    /* sharp, athletic — small radius */
+    --radius: 0.5rem;
+
+    /* domain accents (player segment colors) */
+    --work: 22 95% 54%; /* orange = effort */
+    --rest: 45 93% 55%; /* amber */
+    --recovery: 199 89% 55%; /* cyan-blue = breathe */
+    --phase: 22 95% 54%;
+
+    /* brand orange ramp for gradients/glows */
+    --brand: 22 95% 54%;
+    --brand-deep: 14 90% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01" 1, "cv01" 1;
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(ellipse 60% 50% at 80% -5%, hsl(22 95% 54% / 0.16), transparent 60%),
+      radial-gradient(ellipse 50% 40% at -5% 10%, hsl(14 90% 48% / 0.1), transparent 55%);
+    background-attachment: fixed;
+    min-height: 100svh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Display = Anton (heavy condensed, Nike-ish). Body/UI = Inter. */
+  .font-display,
+  .display {
+    font-family: "Anton", "Archivo", system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+  }
+  h1,
+  h2 {
+    font-family: "Anton", "Archivo", system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.005em;
+  }
+}
+
+@layer components {
+  /* Uppercase tracked micro-label used across the app */
+  .eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground;
+  }
+
+  /* Diagonal accent stripe motif (athletic brand feel) */
+  .accent-bar {
+    @apply inline-block h-7 w-1.5 rounded-full bg-primary;
+    box-shadow: 0 0 24px hsl(var(--brand) / 0.6);
+  }
+
+  /* Card surface with subtle top sheen */
+  .surface {
+    background:
+      linear-gradient(180deg, hsl(40 12% 96% / 0.03), transparent 40%),
+      hsl(var(--card));
+    @apply border border-border/70 rounded-[var(--radius)];
+  }
+
+  .glow-cta {
+    box-shadow:
+      0 10px 40px hsl(var(--brand) / 0.35),
+      0 0 0 1px hsl(var(--brand) / 0.2) inset;
+  }
+}
+
+@layer utilities {
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+  .text-stroke {
+    -webkit-text-stroke: 1.5px hsl(var(--foreground) / 0.85);
+    color: transparent;
+  }
+}
